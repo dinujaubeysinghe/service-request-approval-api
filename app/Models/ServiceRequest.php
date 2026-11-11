@@ -7,12 +7,17 @@ namespace App\Models;
 use App\Enums\RequestCategory;
 use App\Enums\RequestPriority;
 use App\Enums\RequestStatus;
+use Database\Factories\ServiceRequestFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ServiceRequest extends Model
 {
+    /** @use HasFactory<ServiceRequestFactory> */
+    use HasFactory;
+
     /**
      * Status, manager and timestamps are only ever set by server-side code
      * (the workflow service), never copied straight from request input.
