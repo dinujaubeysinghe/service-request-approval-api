@@ -1,6 +1,6 @@
 # Service Request & Approval API
 
-![CI](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml/badge.svg)](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml)
 
 A Laravel REST API for internal service requests. Employees submit requests, managers approve, reject or return them, and Operations assign, start and complete the work. Every status change is validated by a single workflow service, recorded in an audit log, and announced to the right people through queued notifications.
 
@@ -142,7 +142,7 @@ The brief is silent on these, so I decided:
 | Notifications | `app/Jobs/SendRequestStatusNotification.php` |
 | Seed data | `database/seeders/DatabaseSeeder.php` |
 
-See `docs/ARCHITECTURE.md` for the reasoning behind the main decisions.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the reasoning behind the main decisions.
 
 ## What I would do next
 
