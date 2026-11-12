@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Service Request & Approval API",
+    "description": "Run a Login request first. It stores the token automatically, and every other request uses it. Seed data: password is 'password' for all users.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" },
+    { "key": "requestId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as employee (alice)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json.token) { pm.collectionVariables.set('token', json.token); }"] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"password\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Login as manager",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json.token) { pm.collectionVariables.set('token', json.token); }"] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"manager@example.com\",\n  \"password\": \"password\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Login as operations",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json.token) { pm.collectionVariables.set('token', json.token); }"] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ops@example.com\",\n  \"password\": \"password\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/me", "host": ["{{baseUrl}}"], "path": ["api", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee",
+      "item": [
+        {
+          "name": "Create draft",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('requestId', pm.response.json().data.id); }"] } }],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests", "host": ["{{baseUrl}}"], "path": ["api", "requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Replacement laptop\",\n  \"description\": \"My laptop battery no longer holds a charge.\",\n  \"category\": \"equipment\",\n  \"priority\": \"high\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Create and submit",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('requestId', pm.response.json().data.id); }"] } }],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests", "host": ["{{baseUrl}}"], "path": ["api", "requests"] },
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"New monitor\",\n  \"description\": \"My current monitor flickers.\",\n  \"category\": \"equipment\",\n  \"submit\": true\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "List requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/requests?search=&status=&sort=-created_at&per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "requests"],
+              "query": [
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "status", "value": "", "disabled": true },
+                { "key": "sort", "value": "-created_at" },
+                { "key": "per_page", "value": "15" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Show request",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}"] }
+          }
+        },
+        {
+          "name": "Update draft or returned request",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}"] },
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Updated details, including the cost estimate.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Submit for review",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/submit", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "submit"] }
+          }
+        },
+        {
+          "name": "Add comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/comments", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "comments"] },
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Is there an update on this?\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Manager",
+      "item": [
+        {
+          "name": "List team requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests?status=submitted", "host": ["{{baseUrl}}"], "path": ["api", "requests"], "query": [{ "key": "status", "value": "submitted" }] }
+          }
+        },
+        {
+          "name": "Approve",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/decision", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "decision"] },
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"approve\",\n  \"comment\": \"Approved.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Reject (comment required)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/decision", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "decision"] },
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"reject\",\n  \"comment\": \"Outside this quarter's budget.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Return (comment required)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/decision", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "decision"] },
+            "body": { "mode": "raw", "raw": "{\n  \"decision\": \"return\",\n  \"comment\": \"Please add a cost estimate.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Add comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/comments", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "comments"] },
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Can you share more detail?\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Operations",
+      "item": [
+        {
+          "name": "List approved and later requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests?status=approved", "host": ["{{baseUrl}}"], "path": ["api", "requests"], "query": [{ "key": "status", "value": "approved" }] }
+          }
+        },
+        {
+          "name": "Assign owner (ops user id 4 = ops@example.com)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/assign", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "assign"] },
+            "body": { "mode": "raw", "raw": "{\n  \"assignee_id\": 4,\n  \"comment\": \"I will take this one.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Start work",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Complete",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "status"] },
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"completed\",\n  \"comment\": \"Done.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        {
+          "name": "Add comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/requests/{{requestId}}/comments", "host": ["{{baseUrl}}"], "path": ["api", "requests", "{{requestId}}", "comments"] },
+            "body": { "mode": "raw", "raw": "{\n  \"body\": \"Ordering parts.\"\n}", "options": { "raw": { "language": "json" } } }
+          }
+        }
+      ]
+    }
+  ]
+}

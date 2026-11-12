@@ -1,58 +1,159 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Service Request & Approval API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![CI](![CI](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml/badge.svg))
 
-## About Laravel
+A Laravel REST API for internal service requests. Employees submit requests, managers approve, reject or return them, and Operations assign, start and complete the work. Every status change is validated by a single workflow service, recorded in an audit log, and announced to the right people through queued notifications.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Built as the Quantix Global Laravel internship take-home assignment.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel 13, PHP 8.3
+- SQLite (works on MySQL and PostgreSQL too; nothing is database-specific)
+- Laravel Sanctum for token authentication
+- Pest for tests, Pint for formatting, Larastan (level 6) for static analysis
+- GitHub Actions runs Pint, Larastan and the tests on every push
 
-## Learning Laravel
+## Setup
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Requirements: PHP 8.3+ with the `pdo_sqlite` extension, and Composer.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite      # on Windows: type nul > database\database.sqlite
+php artisan migrate:fresh --seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Notifications are sent by queued jobs. To process them, run a worker in a second terminal:
 
-## Contributing
+```bash
+php artisan queue:work
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Or process the waiting jobs once: `php artisan queue:work --stop-when-empty`.
 
-## Code of Conduct
+## Seeded accounts
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Every password is `password`.
 
-## Security Vulnerabilities
+| Email | Role | Notes |
+|---|---|---|
+| manager@example.com | manager | Manages Alice and Bob |
+| alice@example.com | employee | Reports to the manager |
+| bob@example.com | employee | Reports to the manager |
+| ops@example.com | operations | |
+| ops2@example.com | operations | A second Operations user, for assignment |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The seeder creates 10 requests covering all 8 statuses. It drives each one through the real workflow service, so every request has a genuine audit history. Run it after `migrate:fresh`, because it is not idempotent.
 
-## License
+## Running the checks
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+php artisan test                                   # tests
+vendor/bin/pint --test                             # code style (omit --test to fix)
+vendor/bin/phpstan analyse --memory-limit=1G       # static analysis
+```
+
+## API overview
+
+All responses are JSON. Authenticate by sending `Authorization: Bearer <token>`.
+
+| Method | Endpoint | Role | Purpose |
+|---|---|---|---|
+| POST | `/api/login` | Any | Issue an access token |
+| GET | `/api/me` | Any | Current user (extra, handy for checking a token) |
+| POST | `/api/requests` | Employee | Create a draft; send `"submit": true` to submit it too |
+| GET | `/api/requests` | All | List, scoped by role |
+| GET | `/api/requests/{id}` | Policy | Details with comments and activity history |
+| PUT | `/api/requests/{id}` | Employee | Edit a draft or returned request |
+| POST | `/api/requests/{id}/submit` | Employee | Send for manager review |
+| POST | `/api/requests/{id}/decision` | Manager | `approve`, `reject` or `return` |
+| POST | `/api/requests/{id}/assign` | Operations | Assign an Operations user |
+| POST | `/api/requests/{id}/status` | Operations | Move to `in_progress` or `completed` |
+| POST | `/api/requests/{id}/comments` | Participants | Add a comment |
+
+List query parameters: `search`, `status`, `sort` (`created_at`, `updated_at`, `title`, `status`; prefix `-` for descending), `per_page` (max 100).
+
+Full API documentation: import [`docs/service-request-api.postman_collection.json`](docs/service-request-api.postman_collection.json) into Postman. Run one of the Login requests first, because it stores the token that every other request uses. The collection has a folder for each role (Employee, Manager, Operations).
+
+### Status lifecycle
+
+```
+draft -> submitted -> approved -> assigned -> in_progress -> completed
+                   -> rejected (final)
+                   -> returned -> submitted (after the employee edits)
+```
+
+### Error format
+
+Every error has the same shape:
+
+```json
+{ "message": "Cannot move a request from 'draft' to 'completed'.", "code": "invalid_transition", "errors": {} }
+```
+
+| Situation | Status | `code` |
+|---|---|---|
+| Missing or invalid token | 401 | `unauthenticated` |
+| Not allowed (wrong role or not your request) | 403 | `forbidden` |
+| Not found | 404 | `not_found` |
+| Validation failure | 422 | `validation_failed` |
+| Illegal status change | 422 | `invalid_transition` |
+| Too many login attempts | 429 | `too_many_requests` |
+
+A wrong person gets a 403 from the policy. The right person trying an impossible move gets a 422 from the workflow.
+
+## Assumptions and decisions
+
+The brief is silent on these, so I decided:
+
+- **Who may create:** only employees.
+- **Editing:** only the owner, and only in Draft or Returned. Editing at any other time returns 403, because it is a permission question.
+- **Who approves:** the manager recorded on the request when it was submitted (a snapshot). Changing someone's manager later does not change the approver of requests already in review. The snapshot is refreshed when a returned request is resubmitted.
+- **Submitting needs a manager.** An employee with no manager gets a 422.
+- **No self-approval:** a manager can never decide on their own request.
+- **Reject and return require a comment.** Approve does not.
+- **Operations:** any Operations user can assign, start and complete, not only the assignee. An assignee must have the Operations role.
+- **Visibility:** employees see their own requests, managers see requests they are the approver for, and Operations see requests from Approved onward. Viewing a request you may not see returns 403, not 404, which confirms that it exists.
+- **Comments:** anyone who can view a request can comment, including after it is closed. Operations cannot comment before approval, because they cannot see the request yet.
+- **Default priority** is `medium`.
+- **Notifications** (database channel):
+
+| New status | Notified |
+|---|---|
+| Submitted | The manager |
+| Approved, Rejected, Returned | The requester |
+| Assigned | The assignee and the requester |
+| In progress, Completed | The requester |
+
+## Where to look in the code
+
+| Concern | Location |
+|---|---|
+| Status rules | `app/Enums/RequestStatus.php` |
+| Transitions, audit log, locking | `app/Services/RequestWorkflow.php` |
+| Who may do what | `app/Policies/ServiceRequestPolicy.php` |
+| Validation | `app/Http/Requests/` |
+| Response shapes | `app/Http/Resources/` |
+| Error format | `bootstrap/app.php` |
+| Notifications | `app/Jobs/SendRequestStatusNotification.php` |
+| Seed data | `database/seeders/DatabaseSeeder.php` |
+
+See `docs/ARCHITECTURE.md` for the reasoning behind the main decisions.
+
+## What I would do next
+
+- Email notifications alongside the database channel.
+- Full-text search. The current `LIKE '%term%'` cannot use an index, which is fine at this size.
+- File attachments, SLA due dates with an overdue flag, and rate limiting beyond login.
+- An OpenAPI file generated from the code.
+- Docker or Sail setup.
+- Database CHECK constraints for rules the schema can express (for example, an assignee must exist once a request is assigned).
+
+## AI usage and references
+I used Claude as a pair-programming mentor. It proposed the structure and drafted the migrations, workflow service, policies, endpoints, seeders and tests step by step. I created and ran each file, ran Pint, Larastan and the tests at every step, fixed the failures that came up, and committed the work myself.
+
+Packages: Laravel, Laravel Sanctum, Pest, Larastan, Laravel Pint.
