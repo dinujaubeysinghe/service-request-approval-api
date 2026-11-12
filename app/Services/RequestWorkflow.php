@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Enums\ActivityAction;
+use App\Enums\RequestPriority;
 use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Exceptions\InvalidTransitionException;
+use App\Jobs\SendRequestStatusNotification;
 use App\Models\RequestActivity;
 use App\Models\RequestComment;
 use App\Models\ServiceRequest;
@@ -60,6 +62,8 @@ final class RequestWorkflow
                     : null,
             ]);
 
+            SendRequestStatusNotification::dispatch($locked->id, $to)->afterCommit();
+
             return $locked;
         });
     }
@@ -73,11 +77,16 @@ final class RequestWorkflow
     public function create(User $requester, array $attributes, bool $submit = false): ServiceRequest
     {
         return DB::transaction(function () use ($requester, $attributes, $submit): ServiceRequest {
-            // Server-controlled values come last, so client input can never override them.
-            $request = ServiceRequest::create(array_merge($attributes, [
-                'requester_id' => $requester->id,
-                'status' => RequestStatus::Draft,
-            ]));
+            // Defaults first, then client input, then server-controlled values last,
+            // so client input can never override requester_id or status.
+            $request = ServiceRequest::create(array_merge(
+                ['priority' => RequestPriority::Medium],
+                $attributes,
+                [
+                    'requester_id' => $requester->id,
+                    'status' => RequestStatus::Draft,
+                ],
+            ));
 
             RequestActivity::create([
                 'service_request_id' => $request->id,

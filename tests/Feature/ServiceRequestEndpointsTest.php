@@ -66,6 +66,18 @@ it('creates a draft owned by the authenticated employee and ignores forged field
         ->and($activity->to_status)->toBe(RequestStatus::Draft);
 });
 
+it('defaults the priority to medium when none is sent', function () {
+    [, $employee] = employeeWithManager();
+    Sanctum::actingAs($employee);
+
+    $payload = requestPayload();
+    unset($payload['priority']);
+
+    $this->postJson('/api/requests', $payload)
+        ->assertCreated()
+        ->assertJsonPath('data.priority', 'medium');
+});
+
 it('creates and submits in one call', function () {
     [$manager, $employee] = employeeWithManager();
     Sanctum::actingAs($employee);
