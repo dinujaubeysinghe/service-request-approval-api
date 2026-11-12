@@ -64,6 +64,75 @@ final class RequestWorkflow
     }
 
     /**
+     * Create a draft owned by $requester, optionally submitting it straight away.
+     * If submitting fails (for example, no manager), the draft is not saved either.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function create(User $requester, array $attributes, bool $submit = false): ServiceRequest
+    {
+        return DB::transaction(function () use ($requester, $attributes, $submit): ServiceRequest {
+            // Server-controlled values come last, so client input can never override them.
+            $request = ServiceRequest::create(array_merge($attributes, [
+                'requester_id' => $requester->id,
+                'status' => RequestStatus::Draft,
+            ]));
+
+            RequestActivity::create([
+                'service_request_id' => $request->id,
+                'actor_id' => $requester->id,
+                'action' => ActivityAction::Created,
+                'from_status' => null,
+                'to_status' => RequestStatus::Draft,
+            ]);
+
+            return $submit
+                ? $this->transition($request, RequestStatus::Submitted, $requester)
+                : $request;
+        });
+    }
+
+    /**
+     * Edit a request's details. Only Draft and Returned requests are editable.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function update(ServiceRequest $request, array $attributes, User $actor): ServiceRequest
+    {
+        return DB::transaction(function () use ($request, $attributes, $actor): ServiceRequest {
+            $locked = ServiceRequest::query()
+                ->whereKey($request->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            // Re-check under the lock, in case the status changed after the policy ran.
+            if (! $locked->status->isEditable()) {
+                throw InvalidTransitionException::notEditable($locked->status);
+            }
+
+            $locked->fill($attributes);
+            $changed = array_keys($locked->getDirty());
+
+            if ($changed === []) {
+                return $locked;
+            }
+
+            $locked->save();
+
+            RequestActivity::create([
+                'service_request_id' => $locked->id,
+                'actor_id' => $actor->id,
+                'action' => ActivityAction::Updated,
+                'from_status' => $locked->status,
+                'to_status' => $locked->status,
+                'metadata' => ['changed' => $changed],
+            ]);
+
+            return $locked;
+        });
+    }
+
+    /**
      * The extra columns each target status sets.
      *
      * @return array<string, mixed>

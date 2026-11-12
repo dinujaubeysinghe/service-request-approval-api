@@ -7,19 +7,45 @@ namespace App\Models;
 use App\Enums\RequestCategory;
 use App\Enums\RequestPriority;
 use App\Enums\RequestStatus;
+use App\Enums\Role;
 use Database\Factories\ServiceRequestFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * @property RequestStatus $status
+ * @property RequestPriority $priority
+ * @property RequestCategory $category
+ * @property Carbon|null $submitted_at
+ * @property Carbon|null $decided_at
+ * @property Carbon|null $assigned_at
+ * @property Carbon|null $started_at
+ * @property Carbon|null $completed_at
+ * @property Carbon|null $due_at
  */
 class ServiceRequest extends Model
 {
     /** @use HasFactory<ServiceRequestFactory> */
     use HasFactory;
+
+    /**
+     * Limit the query to the requests this user may see. Filtering happens in
+     * SQL, so pagination and counts stay correct.
+     *
+     * @param  Builder<ServiceRequest>  $query
+     */
+    public function scopeVisibleTo(Builder $query, User $user): void
+    {
+        match ($user->role) {
+            Role::Employee => $query->where('requester_id', $user->id),
+            Role::Manager => $query->where('manager_id', $user->id),
+            Role::Operations => $query->whereIn('status', RequestStatus::visibleToOperations()),
+        };
+    }
 
     /**
      * Status, manager and timestamps are only ever set by server-side code

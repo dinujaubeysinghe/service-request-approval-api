@@ -78,11 +78,6 @@ final class ServiceRequestPolicy
 
     private function isInOperationsQueue(ServiceRequest $request): bool
     {
-        return in_array($request->status, [
-            RequestStatus::Approved,
-            RequestStatus::Assigned,
-            RequestStatus::InProgress,
-            RequestStatus::Completed,
-        ], true);
+        return in_array($request->status, RequestStatus::visibleToOperations(), true);
     }
 }

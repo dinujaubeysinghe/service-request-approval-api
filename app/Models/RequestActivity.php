@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use LogicException;
 
+/**
+ * @property ActivityAction $action
+ * @property RequestStatus|null $from_status
+ * @property RequestStatus|null $to_status
+ */
 class RequestActivity extends Model
 {
     /** The log is append-only, so there is no updated_at column. */

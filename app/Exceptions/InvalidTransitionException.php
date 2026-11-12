@@ -18,4 +18,9 @@ final class InvalidTransitionException extends RuntimeException
     {
         return new self('The requester has no manager, so the request cannot be submitted for approval.');
     }
+
+    public static function notEditable(RequestStatus $status): self
+    {
+        return new self(sprintf("A request in '%s' status cannot be edited.", $status->value));
+    }
 }
