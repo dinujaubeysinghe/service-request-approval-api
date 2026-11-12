@@ -6,6 +6,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Enums\RequestStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AssignRequest;
+use App\Http\Requests\ChangeStatusRequest;
+use App\Http\Requests\DecisionRequest;
 use App\Http\Requests\ListServiceRequestsRequest;
 use App\Http\Requests\StoreServiceRequestRequest;
 use App\Http\Requests\UpdateServiceRequestRequest;
@@ -87,5 +90,41 @@ final class ServiceRequestController extends Controller
         $submitted = $workflow->transition($serviceRequest, RequestStatus::Submitted, $user);
 
         return new ServiceRequestResource($submitted->load(['requester', 'manager', 'assignee']));
+    }
+
+    public function decide(DecisionRequest $request, ServiceRequest $serviceRequest, RequestWorkflow $workflow): ServiceRequestResource
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $decided = $workflow->transition($serviceRequest, $request->target(), $user, $request->commentText());
+
+        return new ServiceRequestResource($decided->load(['requester', 'manager', 'assignee']));
+    }
+
+    public function assign(AssignRequest $request, ServiceRequest $serviceRequest, RequestWorkflow $workflow): ServiceRequestResource
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $assigned = $workflow->transition(
+            $serviceRequest,
+            RequestStatus::Assigned,
+            $user,
+            $request->commentText(),
+            $request->assignee(),
+        );
+
+        return new ServiceRequestResource($assigned->load(['requester', 'manager', 'assignee']));
+    }
+
+    public function changeStatus(ChangeStatusRequest $request, ServiceRequest $serviceRequest, RequestWorkflow $workflow): ServiceRequestResource
+    {
+        /** @var User $user */
+        $user = $request->user();
+
+        $changed = $workflow->transition($serviceRequest, $request->target(), $user, $request->commentText());
+
+        return new ServiceRequestResource($changed->load(['requester', 'manager', 'assignee']));
     }
 }

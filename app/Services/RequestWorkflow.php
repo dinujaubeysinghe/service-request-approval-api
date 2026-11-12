@@ -9,6 +9,7 @@ use App\Enums\RequestStatus;
 use App\Enums\Role;
 use App\Exceptions\InvalidTransitionException;
 use App\Models\RequestActivity;
+use App\Models\RequestComment;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -182,5 +183,28 @@ final class RequestWorkflow
             RequestStatus::Completed => ActivityAction::Completed,
             RequestStatus::Draft => throw new LogicException('No transition leads back to draft.'),
         };
+    }
+
+    /** Add a comment and record it in the activity log. */
+    public function addComment(ServiceRequest $request, User $author, string $body): RequestComment
+    {
+        return DB::transaction(function () use ($request, $author, $body): RequestComment {
+            $comment = RequestComment::create([
+                'service_request_id' => $request->id,
+                'user_id' => $author->id,
+                'body' => $body,
+            ]);
+
+            RequestActivity::create([
+                'service_request_id' => $request->id,
+                'actor_id' => $author->id,
+                'action' => ActivityAction::Commented,
+                'from_status' => $request->status,
+                'to_status' => $request->status,
+                'metadata' => ['comment_id' => $comment->id],
+            ]);
+
+            return $comment;
+        });
     }
 }
