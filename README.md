@@ -41,9 +41,9 @@ Every password is `password`.
 
 | Email | Role | Notes |
 |---|---|---|
-| manager@example.com | manager | Manages Alice and Bob |
-| alice@example.com | employee | Reports to the manager |
-| bob@example.com | employee | Reports to the manager |
+| manager@example.com | manager | Manages Nimal and Kamala |
+| nimal@example.com | employee | Reports to the manager |
+| kamala@example.com | employee | Reports to the manager |
 | ops@example.com | operations | |
 | ops2@example.com | operations | A second Operations user, for assignment |
 

@@ -9,7 +9,7 @@
     "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "baseUrl", "value": "http://127.0.0.1:8002" },
     { "key": "token", "value": "" },
     { "key": "requestId", "value": "" }
   ],
@@ -18,14 +18,14 @@
       "name": "Auth",
       "item": [
         {
-          "name": "Login as employee (alice)",
+          "name": "Login as employee",
           "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();", "if (json.token) { pm.collectionVariables.set('token', json.token); }"] } }],
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
             "header": [],
             "url": { "raw": "{{baseUrl}}/api/login", "host": ["{{baseUrl}}"], "path": ["api", "login"] },
-            "body": { "mode": "raw", "raw": "{\n  \"email\": \"alice@example.com\",\n  \"password\": \"password\"\n}", "options": { "raw": { "language": "json" } } }
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"nimal@example.com\",\n  \"password\": \"password\"\n}", "options": { "raw": { "language": "json" } } }
           }
         },
         {
