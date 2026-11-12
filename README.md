@@ -35,6 +35,21 @@ php artisan queue:work
 
 Or process the waiting jobs once: `php artisan queue:work --stop-when-empty`.
 
+Status notifications are delivered through both the database and email channels. Local development uses
+`MAIL_MAILER=log`, so email contents are written to `storage/logs/laravel.log`. Configure the `MAIL_*`
+variables in `.env` with an SMTP provider to send real emails.
+
+To verify a local email notification, keep the queue worker running and watch the log in a second
+terminal:
+
+```bash
+php artisan queue:work
+tail -f storage/logs/laravel.log
+```
+
+Then trigger a request status change. On Windows PowerShell, use
+`Get-Content .\storage\logs\laravel.log -Wait` instead of `tail -f`.
+
 ## Seeded accounts
 
 Every password is `password`.
@@ -146,7 +161,6 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the reasoning behind the 
 
 ## What I would do next
 
-- Email notifications alongside the database channel.
 - Full-text search. The current `LIKE '%term%'` cannot use an index, which is fine at this size.
 - File attachments, SLA due dates with an overdue flag, and rate limiting beyond login.
 - An OpenAPI file generated from the code.

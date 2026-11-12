@@ -6,6 +6,7 @@ use App\Enums\RequestStatus;
 use App\Jobs\SendRequestStatusNotification;
 use App\Models\ServiceRequest;
 use App\Models\User;
+use App\Notifications\RequestStatusChanged;
 use App\Services\RequestWorkflow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
@@ -126,6 +127,19 @@ it('stores a readable payload on the notification', function () {
     expect($data['service_request_id'])->toBe($request->id)
         ->and($data['status'])->toBe('submitted')
         ->and($data['message'])->toContain('New chair');
+});
+
+it('delivers status notifications through both database and email', function () {
+    [$manager, $employee] = notifyTeam();
+    $request = ServiceRequest::factory()->forRequester($employee)->submitted()->create(['title' => 'New chair']);
+    $notification = new RequestStatusChanged($request, RequestStatus::Submitted);
+
+    expect($notification->via($manager))
+        ->toContain('database')
+        ->toContain('mail');
+
+    expect($notification->toMail($manager)->subject)
+        ->toBe('Service request submitted: New chair');
 });
 
 it('does nothing if the request no longer exists', function () {

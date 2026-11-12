@@ -6,6 +6,7 @@ namespace App\Notifications;
 
 use App\Enums\RequestStatus;
 use App\Models\ServiceRequest;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 final class RequestStatusChanged extends Notification
@@ -18,7 +19,15 @@ final class RequestStatusChanged extends Notification
     /** @return list<string> */
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'mail'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject("Service request {$this->status->value}: {$this->request->title}")
+            ->line($this->message())
+            ->line("Current status: {$this->status->value}");
     }
 
     /** @return array<string, mixed> */
