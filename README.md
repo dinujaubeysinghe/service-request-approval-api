@@ -1,6 +1,6 @@
 # Service Request & Approval API
 
-![CI](![CI](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml/badge.svg))
+![CI](https://github.com/dinujaubeysinghe/service-request-approval-api/actions/workflows/ci.yml/badge.svg)
 
 A Laravel REST API for internal service requests. Employees submit requests, managers approve, reject or return them, and Operations assign, start and complete the work. Every status change is validated by a single workflow service, recorded in an audit log, and announced to the right people through queued notifications.
 
